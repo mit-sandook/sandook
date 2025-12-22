@@ -1,0 +1,31 @@
+fail_fast: true
+repos:
+  - repo: https://github.com/zainryan/pre-commit-hooks
+    rev: v1.0.1
+    hooks:
+      - id: clang-format
+        name: Run clang-format
+        args:
+          - -i
+        additional_dependencies: [clang-format==17.*]
+      - id: clang-tidy
+        name: Run clang-tidy
+        args:
+          - -extra-arg=-D__cpp_concepts=202002L
+          - -extra-arg=-std=gnu++23
+          - -fix
+          - -p=build
+        additional_dependencies: [clang-tidy==17.*]
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 23.10.1
+    hooks:
+    - id: black
+      name: Run black
+      language_version: python3.11
+  - repo: local
+    hooks:
+      - id: test
+        name: Run tests
+        entry: ./scripts/pre_commit_test.sh
+        language: script
+        pass_filenames: false

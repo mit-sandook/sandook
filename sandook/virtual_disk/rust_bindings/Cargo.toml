@@ -1,0 +1,20 @@
+[package]
+name = "vdisk_rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "vdisk_rust"
+
+[[bin]]
+name="vdisk"
+path = "src/bin/test_vdisk.rs"
+
+[dependencies]
+shenango = { path = "../../../lib/caladan/bindings/rust" }
+
+[build-dependencies]
+bindgen = "0.69.1"
+build-deps = "0.1.3"

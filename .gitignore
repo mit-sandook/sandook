@@ -1,0 +1,17 @@
+build/**
+**/target/**
+**/*.lock
+bin/**
+perf_*/**
+Testing/**
+*.d
+*.o
+*.a
+*.log
+[._]*.sw[a-p]
+*~
+.cproject
+.project
+.vscode
+.last_install_deps
+**/*.DS_Store

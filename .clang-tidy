@@ -1,0 +1,49 @@
+Checks:
+  '-*,
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  abseil-*,
+  bugprone-*,
+  google-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  concurrency-*,
+  -modernize-use-trailing-return-type,
+  -clang-diagnostic-builtin-macro-redefined,
+  -readability-identifier-length,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-const-cast,
+  -cppcoreguidelines-avoid-c-arrays,
+  -modernize-avoid-c-arrays,
+  -bugprone-easily-swappable-parameters,
+  -performance-no-int-to-ptr,
+  -cppcoreguidelines-pro-type-member-init'
+WarningsAsErrors: '*'
+HeaderFileExtensions:
+  - ''
+  - h
+  - hh
+  - hpp
+  - hxx
+ImplementationFileExtensions:
+  - c
+  - cc
+  - cpp
+  - cxx
+HeaderFilterRegex: ''
+AnalyzeTemporaryDtors: false
+FormatStyle:     google
+CheckOptions:
+  cppcoreguidelines-avoid-do-while.IgnoreMacros: 'true'
+  readability-function-cognitive-complexity.IgnoreMacros: 'true'
+  readability-function-cognitive-complexity.Threshold: 40
+  cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor: 'true'
+  misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic: 'true'
+UseColor:        true
+SystemHeaders:   false
