@@ -1,0 +1,53 @@
+commit d49343601800f21e70508dfa77c35a6820148e1e
+Author: Zain Ruan <zainryan95@gmail.com>
+Date:   Sat Nov 18 15:15:47 2023 +0000
+
+    Use a separate config flag for LTO.
+
+diff --git a/build/config b/build/config
+index 023e2e1..9a3a621 100644
+--- a/build/config
++++ b/build/config
+@@ -1,16 +1,18 @@
+ # build configuration options (set to y for "yes", n for "no")
+ 
+ # Enable Mellanox ConnectX-4,5 NIC Support
+-CONFIG_MLX5=n
++CONFIG_MLX5=y
+ # Enable Mellanox ConnectX-3 NIC Support
+ CONFIG_MLX4=n
+ # Enable SPDK NVMe support
+-CONFIG_SPDK=n
++CONFIG_SPDK=y
+ # Enable debug build mode (slower but enables several runtime checks)
+ CONFIG_DEBUG=n
+-# Enable additional compiler optimizations (may reduce compatibility)
+-CONFIG_OPTIMIZE=n
++# Enable additional compiler optimizations
++CONFIG_OPTIMIZE=y
++# Enable LTO
++CONFIG_LTO=y
+ # Allow runtimes to access Mellanox ConnectX-5 NICs directly (kernel bypass)
+-CONFIG_DIRECTPATH=n
++CONFIG_DIRECTPATH=y
+ # Build with clang instead of gcc
+ CONFIG_CLANG=n
+diff --git a/build/shared.mk b/build/shared.mk
+index 1e087d8..6d3ab4c 100644
+--- a/build/shared.mk
++++ b/build/shared.mk
+@@ -52,10 +52,13 @@ LDFLAGS += -rdynamic
+ else
+ FLAGS += -DNDEBUG -O3
+ ifeq ($(CONFIG_OPTIMIZE),y)
+-FLAGS += -march=native -flto -ffast-math
++FLAGS += -march=native -ffast-math
++ifeq ($(CONFIG_LTO),y)
++FLAGS += -flto
+ ifeq ($(CONFIG_CLANG),y)
+ LDFLAGS += -flto
+ endif
++endif
+ else
+ FLAGS += -mssse3
+ endif

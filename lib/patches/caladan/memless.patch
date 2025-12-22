@@ -1,0 +1,19 @@
+commit 02591eb17205644e49ddf9aa55d3b68cf7e491a6
+Author: Zain Ruan <zainryan95@gmail.com>
+Date:   Sun Oct 8 02:48:50 2023 +0000
+
+    Patch caladan to handle the memless socket scenario.
+
+diff --git a/base/cpu.c b/base/cpu.c
+index 7ae2dc4..858de76 100644
+--- a/base/cpu.c
++++ b/base/cpu.c
+@@ -32,7 +32,7 @@ static int cpu_scan_topology(void)
+ 	int i;
+ 
+ 	/* How many NUMA nodes? */
+-	if (sysfs_parse_bitlist("/sys/devices/system/node/online",
++	if (sysfs_parse_bitlist("/sys/devices/system/node/has_memory",
+ 			        numa_mask, NNUMA))
+ 		return -EIO;
+ 	bitmap_for_each_set(numa_mask, NNUMA, i) {

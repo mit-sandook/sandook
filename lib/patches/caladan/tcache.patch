@@ -1,0 +1,32 @@
+commit ac5d16bc16e03d4e52f959912711df8636bc32f0
+Author: Zain Ruan <zainryan95@gmail.com>
+Date:   Mon Oct 9 02:51:51 2023 +0000
+
+    runtime: increase tcache mag size.
+
+diff --git a/runtime/sched.c b/runtime/sched.c
+index 3a82ca5..572d639 100644
+--- a/runtime/sched.c
++++ b/runtime/sched.c
+@@ -996,7 +996,7 @@ int sched_init(void)
+ 		return ret;
+ 
+ 	thread_tcache = slab_create_tcache(&thread_slab,
+-					   TCACHE_DEFAULT_MAG_SIZE);
++					   TCACHE_MAX_MAG_SIZE);
+ 	if (!thread_tcache) {
+ 		slab_destroy(&thread_slab);
+ 		return -ENOMEM;
+diff --git a/runtime/stack.c b/runtime/stack.c
+index da6c3e9..0252048 100644
+--- a/runtime/stack.c
++++ b/runtime/stack.c
+@@ -113,7 +113,7 @@ int stack_init_thread(void)
+ int stack_init(void)
+ {
+ 	stack_tcache = tcache_create("runtime_stacks", &stack_tcache_ops,
+-				     TCACHE_DEFAULT_MAG_SIZE,
++				     TCACHE_MAX_MAG_SIZE,
+ 				     RUNTIME_STACK_SIZE);
+ 	if (!stack_tcache)
+ 		return -ENOMEM;

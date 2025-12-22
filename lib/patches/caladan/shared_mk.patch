@@ -1,0 +1,13 @@
+diff --git a/build/shared.mk b/build/shared.mk
+index 1e087d8..b7d3c5f 100644
+--- a/build/shared.mk
++++ b/build/shared.mk
+@@ -72,7 +72,7 @@ ifeq ($(CONFIG_SPDK),y)
+ FLAGS += -DDIRECT_STORAGE
+ RUNTIME_LIBS += $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --libs --static libdpdk)
+ RUNTIME_LIBS += $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --libs --static spdk_nvme)
+-RUNTIME_LIBS += $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --libs --static spdk_env_dpdk)
++RUNTIME_LIBS += -lspdk_env_dpdk
+ RUNTIME_LIBS += $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --libs --static spdk_syslibs)
+ INC += -I$(ROOT_PATH)/spdk/include
+ endif

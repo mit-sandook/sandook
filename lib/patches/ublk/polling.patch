@@ -1,0 +1,129 @@
+diff --git a/include/ublksrv.h b/include/ublksrv.h
+index eac3b34..4ef5c93 100644
+--- a/include/ublksrv.h
++++ b/include/ublksrv.h
+@@ -843,7 +843,13 @@ extern unsigned int ublksrv_queue_state(const struct ublksrv_queue *q);
+  * @param queue_data queue private data
+  */
+ extern const struct ublksrv_queue *ublksrv_queue_init(const struct ublksrv_dev *dev,
+-		unsigned short q_id, void *queue_data);
++                                                      unsigned short q_id,
++                                                      void *queue_data);
++extern const struct ublksrv_queue *ublksrv_queue_poll_init(const struct ublksrv_dev *dev,
++						           unsigned short q_id,
++						           void *queue_data,
++						           int sq_thread_cpu,
++						           int sq_thread_idle);
+ 
+ /**
+  * Deinit & free ublksrv queue instance
+diff --git a/include/ublksrv_priv.h b/include/ublksrv_priv.h
+index 2996baa..87da9ff 100644
+--- a/include/ublksrv_priv.h
++++ b/include/ublksrv_priv.h
+@@ -221,6 +221,22 @@ static inline int ublksrv_setup_ring(struct io_uring *r, int depth,
+ 	return io_uring_queue_init_params(depth, r, &p);
+ }
+ 
++static inline int ublksrv_setup_ring_poll(struct io_uring *r, int depth,
++                                          int cq_depth, unsigned flags,
++                                          int sq_thread_cpu, int sq_thread_idle)
++{
++	struct io_uring_params p;
++
++	memset(&p, 0, sizeof(p));
++	p.flags = flags | IORING_SETUP_CQSIZE | IORING_SETUP_SQPOLL |
++		IORING_SETUP_SQ_AFF;
++	p.cq_entries = cq_depth;
++	p.sq_thread_cpu = sq_thread_cpu;
++	p.sq_thread_idle = sq_thread_idle;
++
++	return io_uring_queue_init_params(depth, r, &p);
++}
++
+ static inline struct io_uring_sqe *ublksrv_uring_get_sqe(struct io_uring *r,
+ 		int idx, bool is_sqe128)
+ {
+diff --git a/lib/ublksrv.c b/lib/ublksrv.c
+index 9a418fa..c109037 100644
+--- a/lib/ublksrv.c
++++ b/lib/ublksrv.c
+@@ -490,8 +490,11 @@ static void ublksrv_calculate_depths(const struct _ublksrv_dev *dev, int
+ 	*cq_depth = dev->cq_depth ? dev->cq_depth : depth;
+ }
+ 
+-const struct ublksrv_queue *ublksrv_queue_init(const struct ublksrv_dev *tdev,
+-		unsigned short q_id, void *queue_data)
++static const struct ublksrv_queue *__ublksrv_queue_init(const struct ublksrv_dev *tdev,
++                                                        unsigned short q_id,
++                                                        void *queue_data,
++                                                        bool poll, int sq_thread_cpu,
++                                                        int sq_thread_idle)
+ {
+ 	struct _ublksrv_dev *dev = tdev_to_local(tdev);
+ 	struct _ublksrv_queue *q;
+@@ -579,8 +582,15 @@ skip_alloc_buf:
+ 		//ublk_assert(io_data_size ^ (unsigned long)q->ios[i].data.private_data);
+ 	}
+ 
+-	ret = ublksrv_setup_ring(&q->ring, ring_depth, cq_depth,
+-			IORING_SETUP_SQE128 | IORING_SETUP_COOP_TASKRUN);
++	if (!poll) {
++                ret = ublksrv_setup_ring(&q->ring, ring_depth, cq_depth,
++                                         IORING_SETUP_SQE128 |
++                                         IORING_SETUP_COOP_TASKRUN);
++	} else {
++                ret = ublksrv_setup_ring_poll(&q->ring, ring_depth, cq_depth,
++                                              IORING_SETUP_SQE128, sq_thread_cpu,
++                                              sq_thread_idle);
++	}
+ 	if (ret < 0) {
+ 		ublk_err("ublk dev %d queue %d setup io_uring failed %d",
+ 				q->dev->ctrl_dev->dev_info.dev_id, q->q_id, ret);
+@@ -640,6 +650,24 @@ skip_alloc_buf:
+ 	return NULL;
+ }
+ 
++const struct ublksrv_queue *ublksrv_queue_init(const struct ublksrv_dev *tdev,
++                                               unsigned short q_id,
++                                               void *queue_data)
++{
++	return __ublksrv_queue_init(tdev, q_id, queue_data, false, -1, -1);
++}
++
++const struct ublksrv_queue *ublksrv_queue_poll_init(const struct ublksrv_dev *tdev,
++                                                    unsigned short q_id,
++                                                    void *queue_data,
++                                                    int sq_thread_cpu,
++                                                    int sq_thread_idle)
++{
++	return __ublksrv_queue_init(tdev, q_id, queue_data, true, sq_thread_cpu,
++			            sq_thread_idle);
++}
++
++
+ static int ublksrv_create_pid_file(struct _ublksrv_dev *dev)
+ {
+ 	int dev_id = dev->ctrl_dev->dev_info.dev_id;
+@@ -893,12 +921,6 @@ int ublksrv_process_io(const struct ublksrv_queue *tq)
+ {
+ 	struct _ublksrv_queue *q = tq_to_local(tq);
+ 	int ret, reapped;
+-	struct __kernel_timespec ts = {
+-		.tv_sec = UBLKSRV_IO_IDLE_SECS,
+-		.tv_nsec = 0
+-        };
+-	struct __kernel_timespec *tsp = (q->state & UBLKSRV_QUEUE_IDLE) ?
+-		NULL : &ts;
+ 	struct io_uring_cqe *cqe;
+ 
+ 	ublk_dbg(UBLK_DBG_QUEUE, "dev%d-q%d: to_submit %d inflight %u/%u stopping %d\n",
+@@ -910,7 +932,7 @@ int ublksrv_process_io(const struct ublksrv_queue *tq)
+ 	if (ublksrv_queue_is_done(q))
+ 		return -ENODEV;
+ 
+-	ret = io_uring_submit_and_wait_timeout(&q->ring, &cqe, 1, tsp, NULL);
++	ret = io_uring_submit(&q->ring);
+ 
+ 	ublksrv_reset_aio_batch(q);
+ 	reapped = ublksrv_reap_events_uring(&q->ring);

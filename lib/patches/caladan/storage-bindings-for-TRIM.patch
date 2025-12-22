@@ -1,0 +1,105 @@
+From 160b6fbf142f1f0ecb26fb136a5a694502530cef Mon Sep 17 00:00:00 2001
+From: Gohar Irfan Chaudhry <girfan@mit.edu>
+Date: Sat, 23 Mar 2024 13:49:15 +0000
+Subject: [PATCH] storage bindings for TRIM
+
+---
+ bindings/cc/storage.h |  4 ++++
+ inc/runtime/storage.h |  1 +
+ runtime/storage.c     | 46 +++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 51 insertions(+)
+
+diff --git a/bindings/cc/storage.h b/bindings/cc/storage.h
+index 4c4f469..a09f6cf 100644
+--- a/bindings/cc/storage.h
++++ b/bindings/cc/storage.h
+@@ -19,6 +19,10 @@ class Storage {
+     return storage_read(dst, lba, lba_count);
+   }
+ 
++  static int Deallocate(uint64_t lba, uint32_t lba_count) {
++    return storage_deallocate(lba, lba_count);
++  }
++
+   // Returns the size of each block.
+   static uint32_t get_block_size() { return storage_block_size(); }
+ 
+diff --git a/inc/runtime/storage.h b/inc/runtime/storage.h
+index 9c23285..e453164 100644
+--- a/inc/runtime/storage.h
++++ b/inc/runtime/storage.h
+@@ -13,6 +13,7 @@
+ 
+ extern int storage_write(const void *payload, uint64_t lba, uint32_t lba_count);
+ extern int storage_read(void *dest, uint64_t lba, uint32_t lba_count);
++extern int storage_deallocate(uint64_t lba, uint32_t lba_count);
+ 
+ 
+ /*
+diff --git a/runtime/storage.c b/runtime/storage.c
+index 296d6a4..f11be70 100644
+--- a/runtime/storage.c
++++ b/runtime/storage.c
+@@ -414,6 +414,48 @@ int storage_init(void)
+ 	return 0;
+ }
+ 
++/**
++ * storage_deallocate - deallocate (trim) blocks 
++ *
++ * returns -EIO if the deallocate operation failed
++ */
++int storage_deallocate(uint64_t lba, uint32_t lba_count)
++{
++	int rc;
++	struct kthread *k;
++	struct storage_q *q;
++	struct spdk_nvme_dsm_range range;
++
++	range.starting_lba = lba;
++	range.length = lba_count;
++	range.attributes.raw = 0;
++
++	k = getk();
++	q = &k->storage_q;
++
++	spin_lock(&q->lock);
++
++	rc = spdk_nvme_ns_cmd_dataset_management(spdk_namespace, q->spdk_qp_handle,
++						SPDK_NVME_DSM_ATTR_DEALLOCATE, &range, 1,
++						seq_complete, thread_self());
++
++	if (unlikely(rc != 0)) {
++		spin_unlock(&q->lock);
++		rc = -EIO;
++		goto done_np;
++	}
++
++	q->outstanding_reqs++;
++	thread_park_and_unlock_np(&q->lock);
++
++	preempt_disable();
++
++done_np:
++	preempt_enable();
++
++	return rc;
++}
++
+ #else
+ int storage_write(const void *payload, uint64_t lba, uint32_t lba_count)
+ {
+@@ -425,6 +467,10 @@ int storage_read(void *dest, uint64_t lba, uint32_t lba_count)
+ 	return -ENODEV;
+ }
+ 
++int storage_deallocate(uint64_t lba, uint32_t lba_count) {
++	return -ENODEV;
++}
++
+ int storage_init(void)
+ {
+ 	return 0;
+-- 
+2.39.2
+

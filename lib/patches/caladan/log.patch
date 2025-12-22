@@ -1,0 +1,19 @@
+commit 8d45d2b16bc5d6443fec2a6e63f76ecf23630b73
+Author: Zhenyuan Ruan <zainryan95@gmail.com>
+Date:   Sat Nov 18 16:15:55 2023 -0500
+
+    Use LOG_INFO as the default max log level.
+
+diff --git a/base/log.c b/base/log.c
+index 088f83f..1aac43c 100644
+--- a/base/log.c
++++ b/base/log.c
+@@ -16,7 +16,7 @@
+ #define MAX_LOG_LEN 4096
+ 
+ /* log levels greater than this value won't be printed */
+-int max_loglevel = LOG_DEBUG;
++int max_loglevel = LOG_INFO;
+ 
+ void logk(int level, const char *fmt, ...)
+ {

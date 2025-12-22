@@ -1,0 +1,102 @@
+From 88943459fcc411eb06bb65154cf20fcd24cca283 Mon Sep 17 00:00:00 2001
+From: Gohar Irfan Chaudhry <girfan@mit.edu>
+Date: Thu, 18 Jan 2024 13:54:10 +0000
+Subject: [PATCH] provide a binding to get the SSD serial number via SPDK
+
+---
+ bindings/cc/storage.h |  5 +++++
+ inc/runtime/storage.h | 19 ++++++++++++++++++-
+ runtime/storage.c     |  9 +++++++--
+ 3 files changed, 30 insertions(+), 3 deletions(-)
+
+diff --git a/bindings/cc/storage.h b/bindings/cc/storage.h
+index 14ab90b..4c4f469 100644
+--- a/bindings/cc/storage.h
++++ b/bindings/cc/storage.h
+@@ -24,4 +24,9 @@ class Storage {
+ 
+   // Returns the capacity of the device in blocks.
+   static uint64_t get_num_blocks() { return storage_num_blocks(); }
++
++  // Returns the serial number of the device in the provided buffer.
++  // The serial number size is STORAGE_DEVICE_SN_LEN.
++  // The return value is the number of bytes written into the buffer.
++  static int get_serial_number(char *sn) { return storage_serial_number(sn); }
+ };
+diff --git a/inc/runtime/storage.h b/inc/runtime/storage.h
+index 51bbd46..9c23285 100644
+--- a/inc/runtime/storage.h
++++ b/inc/runtime/storage.h
+@@ -4,13 +4,17 @@
+ 
+ #pragma once
+ 
++#include <string.h>
+ #include <base/stddef.h>
+ 
++/* Equal to: SPDK_NVME_CTRLR_SN_LEN */
++#define STORAGE_DEVICE_SN_LEN 20
++
++
+ extern int storage_write(const void *payload, uint64_t lba, uint32_t lba_count);
+ extern int storage_read(void *dest, uint64_t lba, uint32_t lba_count);
+ 
+ 
+-
+ /*
+  * storage_block_size - get the size of a block from the nvme device
+  */
+@@ -28,3 +32,16 @@ static inline uint64_t storage_num_blocks(void)
+ 	extern uint64_t num_blocks;
+ 	return num_blocks;
+ }
++
++/*
++ * storage_serial_number - gets the serial number from the nvme device
++ *
++ * the size of the serial number to fill in the buffer is STORAGE_DEVICE_SN_LEN.
++ * returns the number of bytes read.
++ */
++static inline int storage_serial_number(char *sn)
++{
++	extern char* storage_sn;
++	memcpy(sn, storage_sn, STORAGE_DEVICE_SN_LEN);
++	return STORAGE_DEVICE_SN_LEN;
++}
+diff --git a/runtime/storage.c b/runtime/storage.c
+index 3ae19ac..296d6a4 100644
+--- a/runtime/storage.c
++++ b/runtime/storage.c
+@@ -7,6 +7,7 @@
+ 
+ uint32_t block_size;
+ uint64_t num_blocks;
++char* storage_sn;
+ 
+ #ifdef DIRECT_STORAGE
+ #include <stdio.h>
+@@ -78,8 +79,7 @@ static void attach_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
+ 
+ 	num_ns = spdk_nvme_ctrlr_get_num_ns(ctrlr);
+ 	if (num_ns > 1) {
+-		perror("more than 1 storage devices");
+-		//exit(1);
++		log_info("more than 1 storage devices");
+ 	}
+ 	if (num_ns == 0) {
+ 		perror("no storage device");
+@@ -91,6 +91,11 @@ static void attach_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
+ 	block_size = spdk_nvme_ns_get_sector_size(spdk_namespace);
+ 	num_blocks = spdk_nvme_ns_get_num_sectors(spdk_namespace);
+ 
++	storage_sn = (char*)malloc(SPDK_NVME_CTRLR_SN_LEN);
++	memcpy(storage_sn, ctrlr_data->sn, SPDK_NVME_CTRLR_SN_LEN);
++
++	log_info("storage: device found %s (serial number: %s)", (char*)ctrlr_data->mn, storage_sn);
++
+ 	for (i = 0; i < ARRAY_SIZE(known_devices); i++) {
+ 		if (!strncmp((char *)ctrlr_data->mn, known_devices[i].name,
+ 			           strlen(known_devices[i].name))) {
+-- 
+2.39.2
+

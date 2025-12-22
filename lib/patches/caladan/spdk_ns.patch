@@ -1,0 +1,13 @@
+diff --git a/runtime/storage.c b/runtime/storage.c
+index f3eddef..9a35d10 100644
+--- a/runtime/storage.c
++++ b/runtime/storage.c
+@@ -66,7 +66,7 @@ static void attach_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
+ 	num_ns = spdk_nvme_ctrlr_get_num_ns(ctrlr);
+ 	if (num_ns > 1) {
+ 		perror("more than 1 storage devices");
+-		exit(1);
++		//exit(1);
+ 	}
+ 	if (num_ns == 0) {
+ 		perror("no storage device");

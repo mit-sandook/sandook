@@ -1,0 +1,88 @@
+commit 9b1e843ec3f5e551af0bf9ca14d0a413c8279802
+Author: Zain Ruan <zainryan95@gmail.com>
+Date:   Tue Nov 14 04:17:50 2023 +0000
+
+    Pass the spdk pci addr from the config file.
+
+diff --git a/runtime/cfg.c b/runtime/cfg.c
+index 14d218d..ed9e175 100644
+--- a/runtime/cfg.c
++++ b/runtime/cfg.c
+@@ -322,13 +322,13 @@ static int parse_preferred_socket(const char *name, const char *val)
+ 	return 0;
+ }
+ 
+-static int parse_enable_storage(const char *name, const char *val)
++static int parse_attach_spdk_pci(const char *name, const char *val)
+ {
+ #ifdef DIRECT_STORAGE
+ 	cfg_storage_enabled = true;
+-	return 0;
++	return storage_pci_addr_parse(&cfg_spdk_pci_addr, val);
+ #else
+-	log_err("cfg: cannot enable storage, "
++	log_err("cfg: cannot attach spdk storage, "
+ 		"please recompile with storage support");
+ 	return -EINVAL;
+ #endif
+@@ -390,7 +390,7 @@ static const struct cfg_handler cfg_handlers[] = {
+ 	{ "log_level", parse_log_level, false },
+ 	{ "disable_watchdog", parse_watchdog_flag, false },
+ 	{ "preferred_socket", parse_preferred_socket, false },
+-	{ "enable_storage", parse_enable_storage, false },
++	{ "attach_spdk_pci", parse_attach_spdk_pci, false },
+ 	{ "enable_directpath", parse_enable_directpath, false },
+ 	{ "enable_gc", parse_enable_gc, false },
+ 
+diff --git a/runtime/defs.h b/runtime/defs.h
+index 58df714..e24b729 100644
+--- a/runtime/defs.h
++++ b/runtime/defs.h
+@@ -273,7 +273,9 @@ static inline bool hardware_q_pending(struct hardware_q *q)
+ #ifdef DIRECT_STORAGE
+ 
+ extern bool cfg_storage_enabled;
++extern struct spdk_pci_addr cfg_spdk_pci_addr;
+ extern unsigned long storage_device_latency_us;
++int storage_pci_addr_parse (struct spdk_pci_addr *addr, const char *bdf);
+ 
+ static inline bool storage_enabled(void)
+ {
+diff --git a/runtime/storage.c b/runtime/storage.c
+index f3eddef..e129438 100644
+--- a/runtime/storage.c
++++ b/runtime/storage.c
+@@ -25,6 +25,7 @@ struct iovec;
+ 
+ unsigned long storage_device_latency_us = 100;
+ bool cfg_storage_enabled;
++struct spdk_pci_addr cfg_spdk_pci_addr;
+ 
+ static struct spdk_nvme_ctrlr *controller;
+ static struct spdk_nvme_ns *spdk_namespace;
+@@ -46,6 +47,11 @@ struct nvme_device {
+ 	}
+ };
+ 
++int storage_pci_addr_parse(struct spdk_pci_addr *addr, const char *bdf)
++{
++	return spdk_pci_addr_parse(addr, bdf);
++}
++
+ static void seq_complete(void *arg, const struct spdk_nvme_cpl *completion)
+ {
+ 	struct thread *th = arg;
+@@ -62,6 +68,13 @@ static void attach_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
+ {
+ 	int i, num_ns;
+ 	const struct spdk_nvme_ctrlr_data *ctrlr_data;
++	const struct spdk_pci_device *pci_device;
++
++	pci_device = spdk_nvme_ctrlr_get_pci_device(ctrlr);
++	if (spdk_pci_addr_compare(&pci_device->addr, &cfg_spdk_pci_addr)) {
++		spdk_nvme_detach(ctrlr);
++		return;
++	}
+ 
+ 	num_ns = spdk_nvme_ctrlr_get_num_ns(ctrlr);
+ 	if (num_ns > 1) {
