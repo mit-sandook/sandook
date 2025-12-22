@@ -125,7 +125,7 @@ Configuration files (`.config`) specify:
 
 This artifact evaluates the key claims of the Sandook paper: *"Unleashing The Potential of Datacenter SSDs by Taming Performance Variability"* (NSDI '26).
 
-### Accessing Evaluation Tested
+### Accessing Evaluation Testbed
 > [!NOTE]
 > In order to make it easier to access the hardware/software environment for evaluating the artifact, we will provide access to our own server testbed. We kindly request the authors to email us at girfan@mit.edu and ankit@cs.tufts.edu when ready to evaluate the artifact and we will promptly provide credentials and login instructions to our servers.
 
