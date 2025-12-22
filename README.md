@@ -1,4 +1,9 @@
-# Sandook: Artifact Evaluation Guide (NSDI - Fall 2026)
+# Sandook
+![Status](https://img.shields.io/badge/Version-Experimental-green.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Artifact Evaluation Guide (NSDI - Fall 2026)
+This document (and the references within) are to guide the artifact evaluation process.
 
 ## Overview
 
