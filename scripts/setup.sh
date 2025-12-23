@@ -21,13 +21,15 @@ function setup_ublk {
 }
 
 function setup_caladan {
-  cd $CALADAN_DIR
+  pushd $CALADAN_DIR
   sudo ./scripts/setup_machine.sh
+  popd
 }
 
 function setup_spdk {
-  cd $CALADAN_DIR/spdk
+  push $CALADAN_DIR/spdk
   sudo ./scripts/setup.sh
+  popd
 }
 
 function setup_net_interface {

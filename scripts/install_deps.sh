@@ -18,24 +18,36 @@ fi
 export DEBIAN_FRONTEND=noninteractive
 
 # Install Linux packages
-sudo apt update
-sudo -E apt install -y gcc-13 g++-13 fio pkg-config libtool dwarves lshw nvme-cli pre-commit libjsoncpp-dev
+function install_packages {
+    sudo apt update
+    sudo -E apt install -y gcc-13 g++-13 fio pkg-config libtool dwarves lshw nvme-cli pre-commit libjsoncpp-dev
+}
 
-# Install Rust. Needed for loadgen.
-curl https://sh.rustup.rs -sSf | sh -s -- -y
-source $HOME/.cargo/env
-rustup default nightly
-rustup component add rust-src
+# Install Rust (Needed for loadgen)
+function install_rust {
+    pushd ${SCRIPT_DIR}
+    curl https://sh.rustup.rs -sSf | sh -s -- -y
+    source $HOME/.cargo/env
+    rustup default nightly
+    rustup component add rust-src
+    popd
+}
 
 # Initialize submodules
-git submodule update --init --recursive
+function init_submodules {
+    git submodule update --init --recursive
+}
 
-# Install modules
+install_packages
+install_rust
+init_submodules
+
 cd $SCRIPT_DIR
+
 ./install_cmake.sh
 ./install_liburing.sh
 ./install_ubdsrv.sh
 ./install_caladan.sh
-./install_dashboard.sh
 pre-commit install
+
 git rev-parse --short HEAD > .last_install_deps

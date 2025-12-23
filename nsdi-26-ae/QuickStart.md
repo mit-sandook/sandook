@@ -3,6 +3,8 @@
 1. **Start the I/O kernel daemon** (Caladan):
    ```bash
    sudo ./lib/caladan/iokerneld ias nicpci <NIC_PCI_ADDR>
+   # Example:
+   sudo ./lib/caladan/iokerneld ias nicpci 0000:03:00.0
    ```
 
 2. **Launch the controller**:
@@ -12,7 +14,9 @@
 
 3. **Launch disk server(s)**:
    ```bash
-   sudo ./build/sandook/disk_server/disk_server ./build/sandook/disk_server/disk_server.config <device>
+   sudo ./build/sandook/disk_server/disk_server ./build/sandook/disk_server/disk_server_spdk.config <device>
+   # Example:
+   sudo ./build/sandook/disk_server/disk_server ./build/sandook/disk_server/disk_server_spdk.config nvme0n1
    ```
 
 4. **Launch block device agent**:

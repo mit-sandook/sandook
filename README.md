@@ -2,6 +2,11 @@
 ![Status](https://img.shields.io/badge/Version-Experimental-green.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## Paper
+**Unleashing The Potential of Datacenter SSDs by Taming Performance Variability** *(NSDI '26)*
+
+Gohar Irfan Chaudhry, Ankit Bhardwaj, Zhenyuan Ruan, Adam Belay
+
 ## Artifact Evaluation Guide (NSDI - Fall 2026)
 This document (and the references within) are to guide the artifact evaluation process.
 
@@ -76,7 +81,6 @@ sandook/
 ├── data/                       # SSD profiles and models
 │   ├── ssd_models/             # Pre-computed latency-load models
 │   └── ssd_profiles/           # Raw SSD profiling data
-├── dashboard/                  # Python visualization dashboard
 └── scripts/                    # Build, setup, and test scripts
 ```
 
@@ -89,7 +93,7 @@ sandook/
 # Build
 ./scripts/build.sh clean
 
-# Setup (configure network interface)
+# Setup (network_interface_name e.g., 100gp1)
 ./scripts/setup.sh <network_interface_name>
 ```
 
@@ -100,19 +104,28 @@ sandook/
 - Linux kernel 5.15+ (for ublk support)
 - DPDK-compatible NIC (for Caladan)
 
-## Hardware Requirements
+## Testbed
+
+The following testbed configuration was used for the experiments in the Sandook paper.
 
 ### Storage
-- **NVMe SSDs**: Sandook requires NVMe SSDs accessible via SPDK or standard POSIX interfaces
-- **Tested Models**: The paper evaluation used **Samsung PM1725a** NVMe SSDs (3.2TB, PCIe 3.0 x8)
-- **Testbed Configuration**: 10 SSDs distributed across multiple machines, with one SSD per disk server
+- **NVMe SSDs**: Sandook requires NVMe SSDs accessible via SPDK
+- **Tested Models**: The paper evaluation used **Samsung PM1725a** and **Western Digital (DC SN200)**
+- **Testbed Configuration**: 10 SSDs distributed across multiple machines
 
 ### Network
 - **NIC**: DPDK-compatible network interface card required for the Caladan runtime
-- **Tested NIC**: Mellanox ConnectX-5 (100 Gbps)
+- **Tested NIC**: Mellanox ConnectX-6 (100 GbE)
 - **Requirements**: The NIC must support DPDK poll-mode drivers; Caladan uses kernel-bypass for low-latency networking
 
-### Machines
+### Other
+- **CPU**: Intel Xeon E5-2680 v4 CPU
+- **DRAM**: 64 GB DDR4
+
+### Software
+- **Operating System**: Ubuntu 23.04 LTS with Linux kernel v6.5
+
+### Minimum Recommendation
 - Minimum 2 machines: one for the client (controller + block device agent) and one or more for disk servers
 - Each disk server machine requires at least one NVMe SSD
 - For proper benefits of the scheduling policies, have at least as many SSDs as the replication factor
@@ -127,8 +140,6 @@ Configuration files (`.config`) specify:
 - Disk server backend (POSIX/Memory/SPDK)
 
 ## Artifact Evaluation
-
-This artifact evaluates the key claims of the Sandook paper: *"Unleashing The Potential of Datacenter SSDs by Taming Performance Variability"* (NSDI '26).
 
 ### Accessing Evaluation Testbed
 > [!NOTE]

@@ -22,6 +22,7 @@ patch -p1 -N -d $CALADAN_DIR < storage.patch
 patch -p1 -N -d $CALADAN_DIR < log.patch
 patch -p1 -N -d $CALADAN_DIR < ssd_serial_num.patch
 patch -p1 -N -d $CALADAN_DIR < storage-bindings-for-TRIM.patch
+patch -p1 -N -d $CALADAN_DIR < disable_pyverbs.patch
 
 # Install Caladan
 cd $CALADAN_DIR
