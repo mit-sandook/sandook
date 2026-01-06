@@ -6,7 +6,7 @@
 	url = https://github.com/brendangregg/FlameGraph.git
 [submodule "lib/liburing"]
 	path = lib/liburing
-	url = git@github.com:axboe/liburing.git
+	url = https://github.com/axboe/liburing.git
 [submodule "lib/caladan"]
 	path = lib/caladan
-	url = git@github.com:shenango/caladan.git
+	url = https://github.com/shenango/caladan.git

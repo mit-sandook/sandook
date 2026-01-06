@@ -25,11 +25,11 @@ Sandook is a distributed storage system that aggregates multiple NVMe SSDs into 
 ## Architecture
 
 ```
-┌──────────────┐     ┌────────────┐     ┌─────────────┐     ┌──────────┐
-│  Application │     │ Controller │     │ Disk Server │     │  NVMe    │
-│      ↓       │     │  (central) │     │   (per-SSD) │────►│  SSD     │
-│  Block Dev   │◄───►│ Scheduling │◄───►│  SPDK/POSIX │     │          │
-│  (ublksrv)   │     │ Allocation │     │   Backend   │     └──────────┘
+┌──────────────┐     ┌────────────┐     ┌─────────────┐     ┌────────┐
+│  Application │     │ Controller │     │ Disk Server │     │  NVMe  │
+│      ↓       │     │  (central) │     │   (per-SSD) │────►│  SSD   │
+│  Block Dev   │◄───►│ Scheduling │◄───►│  SPDK/POSIX │     │        │
+│  (ublksrv)   │     │ Allocation │     │   Backend   │     └────────┘
 │      ↓       │     └────────────┘     └─────────────┘
 │ Virtual Disk │──────────────────────────────────────►
 └──────────────┘              RPC (Caladan TCP)

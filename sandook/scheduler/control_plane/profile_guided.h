@@ -273,9 +273,14 @@ class ProfileGuided : public BaseScheduler {
       loads.emplace_back(srv_load);
       total_iops_capacity += srv_load;
     });
+    if (total_iops_capacity == 0) {
+      // All servers are saturated per their profiles; fall back to equal weights.
+      return weights;
+    }
     std::sort(std::begin(loads), std::end(loads));
     const auto median_load = loads.at(static_cast<size_t>(loads.size() / 2));
 
+    double sum_weights = 0.0;
     std::ranges::for_each(stats, [&](const auto &srv) {
       const auto server_id = srv.server_id;
       const auto &model = models_.at(server_id);
@@ -287,7 +292,18 @@ class ProfileGuided : public BaseScheduler {
       } else {
         weight -= kBias;
       }
+      weight = std::clamp(weight, kMinWeight, kMaxWeight);
       weights.at(server_id) = weight;
+      sum_weights += weight;
+    });
+
+    if (sum_weights <= 0.0) {
+      ResetWeights(&weights, &stats);
+      return weights;
+    }
+    std::ranges::for_each(stats, [&](const auto &srv) {
+      const auto server_id = srv.server_id;
+      weights.at(server_id) /= sum_weights;
     });
 
     return weights;

@@ -57,7 +57,12 @@ fn link_virtual_disk() {
     build_deps::rerun_if_changed_paths("../**").unwrap();
     build_deps::rerun_if_changed_paths("../../../build/sandook/*.a").unwrap();
 
-    println!("cargo:rustc-link-lib=static=stdc++");
+    // Sandook provides its own `operator new/delete` (see `mem_hook.cc`). If we
+    // statically link `libstdc++` we can pull in `new_op.o/del_op.o` which also
+    // define these symbols, causing duplicate-symbol link failures. Dynamic
+    // linking avoids embedding the C++ runtime's allocator symbols into our
+    // static archives.
+    println!("cargo:rustc-link-lib=stdc++");
     println!("cargo:rustc-link-lib=static=virtual_disk");
     println!("cargo:rustc-link-lib=static=config");
     println!("cargo:rustc-link-lib=static=rpc");
@@ -117,3 +122,4 @@ fn main() {
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
 }
+

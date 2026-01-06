@@ -27,7 +27,7 @@ function setup_caladan {
 }
 
 function setup_spdk {
-  push $CALADAN_DIR/spdk
+  pushd $CALADAN_DIR/spdk
   sudo ./scripts/setup.sh
   popd
 }

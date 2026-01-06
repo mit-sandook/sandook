@@ -223,17 +223,13 @@ class DiskModel {
     assert(!latency->empty());
     assert(load->size() == latency->size());
 
-    size_t idx = 0;
+    // Choose the largest load with latency still below saturation.
+    uint64_t ret = load->back();
     for (size_t i = 0; i < load->size(); i++) {
       if (latency->at(i) >= kSaturationLatencyUs) {
-        idx = i - 1;
+        ret = (i == 0) ? 0 : load->at(i - 1);
         break;
       }
-    }
-
-    uint64_t ret = load->back();
-    if (idx > 0) {
-      ret = load->at(idx);
     }
 
     double dampened_load = static_cast<double>(ret) * kPeakLoadDampeningFactor;

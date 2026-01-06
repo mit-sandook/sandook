@@ -1,0 +1,23 @@
+diff --git a/inc/base/thread.h b/inc/base/thread.h
+index e8a5fea..bca1c6f 100644
+--- a/inc/base/thread.h
++++ b/inc/base/thread.h
+@@ -12,9 +12,18 @@
+ #include <base/stddef.h>
+ 
+ /* used to define perthread variables */
++/*
++ * NOTE: bindgen struggles to emit globals whose type is expressed via GNU
++ * typeof(...). Provide a simpler expansion when generating Rust bindings.
++ */
++#ifdef __BINDGEN__
++#define DEFINE_PERTHREAD(type, name)                                           \
++  type __perthread_##name
++#else
+ #define DEFINE_PERTHREAD(type, name)                                           \
+   typeof(type) __perthread_##name __perthread                                  \
+       __attribute__((section(".perthread,\"\",@nobits#")))
++#endif
+ 
+ /* used to make perthread variables externally available */
+ #define DECLARE_PERTHREAD(type, name) extern DEFINE_PERTHREAD(type, name)

@@ -38,6 +38,9 @@ constexpr static auto kModelRejectionReadLatencyThreshold = 1.0;
 constexpr static auto kModelRejectionWriteLatencyThreshold = 1.0;
 
 constexpr static auto kCongestionLatencyThresholdUs = 2500;
+/* Congestion trigger based on (observed / expected) tail-latency ratio. */
+constexpr static auto kCongestionSignalRatioThreshold = 2.5;
+constexpr static auto kMinExpectedLatencyUs = 1.0;
 constexpr static auto kCongestedUnstableFactor = 0.7;
 constexpr static auto kCongestedStableFactor = 0.9;
 
@@ -304,6 +307,8 @@ class DiskMonitor {
   uint64_t signal_write_latency_{0};
   uint64_t state_transition_read_latency_{0};
   uint64_t state_transition_write_latency_{0};
+  double signal_ratio_{0.0};
+  double state_transition_ratio_{0.0};
   tdigest::TDigest td_reads_;
   tdigest::TDigest td_writes_;
 
@@ -429,8 +434,35 @@ class DiskMonitor {
       return;
     }
 
-    bool is_congested = signal_read_latency_ > kCongestionLatencyThresholdUs;
-    if (is_congested) {
+    /* Build a more robust congestion signal:
+     * - Compare observed tail latency against the model's expected tail latency
+     *   for the current load and mode.
+     * - Use matching percentiles: mix models are generated from p90, whereas
+     *   pure read/write models are generated from p99.
+     * - Consider both reads and writes, since either can be the bottleneck.
+     */
+    const auto exp_read_lat = static_cast<double>(std::max<uint64_t>(
+        model_.GetLatency(total_load_ops_, OpType::kRead, mode_, write_ratio_),
+        static_cast<uint64_t>(kMinExpectedLatencyUs)));
+    const auto exp_write_lat = static_cast<double>(std::max<uint64_t>(
+        model_.GetLatency(total_load_ops_, OpType::kWrite, mode_, write_ratio_),
+        static_cast<uint64_t>(kMinExpectedLatencyUs)));
+
+    const auto obs_read_sig = static_cast<double>(
+        (mode_ == ServerMode::kRead) ? p99_read_latency_td_ : p90_read_latency_td_);
+    const auto obs_write_sig = static_cast<double>(
+        (mode_ == ServerMode::kWrite) ? p99_write_latency_td_ : p90_write_latency_td_);
+
+    const auto read_ratio = obs_read_sig / exp_read_lat;
+    const auto write_ratio = obs_write_sig / exp_write_lat;
+    signal_ratio_ = std::max(read_ratio, write_ratio);
+
+    const bool is_congested_abs =
+        (signal_read_latency_ > kCongestionLatencyThresholdUs) ||
+        (signal_write_latency_ > kCongestionLatencyThresholdUs);
+    const bool is_congested_ratio =
+        signal_ratio_ > kCongestionSignalRatioThreshold;
+    if (is_congested_abs || is_congested_ratio) {
       // * --> kCongested
       congestion_state_ = ServerCongestionState::kCongested;
       return;
@@ -444,25 +476,19 @@ class DiskMonitor {
        * Now we want to ramp back up close to it.
        */
       congestion_state_ = ServerCongestionState::kCongestedUnstable;
-      const auto exp_sig = model_.GetLatency(total_load_ops_, OpType::kRead,
-                                             mode_, write_ratio_);
-      state_transition_read_latency_ = static_cast<uint64_t>(
-          static_cast<double>(exp_sig) * kCongestedUnstableFactor);
+      state_transition_ratio_ = kCongestedUnstableFactor;
       return;
     }
 
     // kCongestedUnstable --> ?
     if (congestion_state_ == ServerCongestionState::kCongestedUnstable) {
       // kCongestedUnstable --> kCongestedStable
-      if (signal_read_latency_ > state_transition_read_latency_) {
+      if (signal_ratio_ > state_transition_ratio_) {
         congestion_state_ = ServerCongestionState::kCongestedStable;
         /* Stop doing additive increase.
          * Next transition is when we fall back on the model.
          */
-        const auto exp_sig = model_.GetLatency(total_load_ops_, OpType::kRead,
-                                               mode_, write_ratio_);
-        state_transition_read_latency_ = static_cast<uint64_t>(
-            static_cast<double>(exp_sig) * kCongestedStableFactor);
+        state_transition_ratio_ = kCongestedStableFactor;
         return;
       }
 
@@ -474,7 +500,7 @@ class DiskMonitor {
     // kCongestedStable --> ?
     if (congestion_state_ == ServerCongestionState::kCongestedStable) {
       // kCongestedStable --> kUnCongested
-      if (signal_read_latency_ < state_transition_read_latency_) {
+      if (signal_ratio_ < state_transition_ratio_) {
         congestion_state_ = ServerCongestionState::kUnCongested;
       }
 

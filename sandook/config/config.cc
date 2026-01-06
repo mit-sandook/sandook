@@ -117,6 +117,14 @@ const Config::DataPlaneSchedulerType Config::kDataPlaneSchedulerType =
                  "RandomReadWrite") == 0) {
         return Config::DataPlaneSchedulerType::kRandomReadWrite;
       }
+      if (strcmp(root["kDataPlaneSchedulerType"].asCString(),
+                 "RandomReadHashWrite") == 0) {
+        return Config::DataPlaneSchedulerType::kRandomReadHashWrite;
+      }
+      if (strcmp(root["kDataPlaneSchedulerType"].asCString(),
+                 "WeightedReadHashWrite") == 0) {
+        return Config::DataPlaneSchedulerType::kWeightedReadHashWrite;
+      }
       throw std::runtime_error("Unknown data plane scheduler type");
     }(root);
 

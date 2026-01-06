@@ -19,6 +19,41 @@ SPDK_BACKEND="SPDK"
 
 RETURN=0
 
+SANDOOK_PRINT_CMDS="${SANDOOK_PRINT_CMDS:-0}"
+
+function _sandook_print_cmd {
+  if [[ "${SANDOOK_PRINT_CMDS}" != "1" ]]; then
+    return
+  fi
+
+  # Print a shell-escaped, copy/pasteable command line (with expanded values).
+  # Use stderr so it shows up even when stdout is redirected.
+  printf "[sandook cmd] " >&2
+  printf "%q " "$@" >&2
+  printf "\n" >&2
+}
+
+function _sandook_run_bg_to_log {
+  # Usage:
+  #   _sandook_run_bg_to_log /path/to/log KEY=VALUE ... -- command arg1 arg2...
+  local log_file="$1"
+  shift
+
+  local -a env_kvs=()
+  while [[ "$#" -gt 0 && "$1" != "--" ]]; do
+    env_kvs+=("$1")
+    shift
+  done
+  if [[ "$#" -eq 0 ]]; then
+    echo "_sandook_run_bg_to_log: missing -- delimiter and command" >&2
+    return 2
+  fi
+  shift # consume --
+
+  _sandook_print_cmd env "${env_kvs[@]}" "$@" ">" "${log_file}" "2>&1" "&"
+  env "${env_kvs[@]}" "$@" >"${log_file}" 2>&1 &
+}
+
 function assert_success {
   if [[ $? -ne 0 ]]
   then
@@ -133,7 +168,7 @@ function start_iokerneld {
   cd $CALADAN_DIR
   (sudo pkill iokerneld && sleep 2) || true
   echo "Launching iokerneld..."
-  sudo nohup ./iokerneld ias nicpci $NET_PCI_ADDR $OPTIONAL_PARAMS > $IOKERNELD_LOG 2>&1 &
+  _sandook_run_bg_to_log "$IOKERNELD_LOG" -- sudo nohup ./iokerneld ias nicpci "$NET_PCI_ADDR" $OPTIONAL_PARAMS
   assert_success
 
   set +x
@@ -161,7 +196,7 @@ function start_controller {
   controller_config=$controller_dir/controller.config
 
   cd $controller_dir
-  SANDOOK_CONFIG="$SANDOOK_CONFIG" sudo -E stdbuf -oL -eL nohup $controller $controller_config > $controller_log 2>&1 &
+  _sandook_run_bg_to_log "$controller_log" SANDOOK_CONFIG="$SANDOOK_CONFIG" -- sudo -E stdbuf -oL -eL nohup "$controller" "$controller_config"
 
   sleep 5
   reset
@@ -200,7 +235,7 @@ function start_controller_with_params {
   update_controller_disk_server_rejections $disk_server_rejections $controller_sandook_config
 
   cd $controller_dir
-  SANDOOK_CONFIG="$controller_sandook_config" sudo -E stdbuf -oL -eL nohup $controller $controller_caladan_config > $controller_log 2>&1 &
+  _sandook_run_bg_to_log "$controller_log" SANDOOK_CONFIG="$controller_sandook_config" -- sudo -E stdbuf -oL -eL nohup "$controller" "$controller_caladan_config"
 
   sleep 5
   reset
@@ -231,7 +266,7 @@ function start_disk_server {
   update_disk_server_backend $SPDK_BACKEND $disk_server_sandook_config
 
   cd $disk_server_dir
-  SANDOOK_CONFIG="$SANDOOK_CONFIG" sudo -E nohup $disk_server $disk_server_config > $disk_server_log 2>&1 &
+  _sandook_run_bg_to_log "$disk_server_log" SANDOOK_CONFIG="$disk_server_sandook_config" -- sudo -E nohup "$disk_server" "$disk_server_config"
 
   sleep 10
   reset
@@ -264,7 +299,7 @@ function start_disk_server_with_params {
   update_disk_server_backend $SPDK_BACKEND $disk_server_sandook_config
 
   cd $disk_server_dir
-  SANDOOK_CONFIG="$disk_server_sandook_config" sudo -E stdbuf -oL -eL nohup $disk_server $disk_server_caladan_config > $disk_server_log 2>&1 &
+  _sandook_run_bg_to_log "$disk_server_log" SANDOOK_CONFIG="$disk_server_sandook_config" -- sudo -E stdbuf -oL -eL nohup "$disk_server" "$disk_server_caladan_config"
 
   sleep 10
   reset
@@ -361,7 +396,7 @@ function start_blk_dev {
   update_blk_dev_ip $BLK_DEV_IP $blk_dev_sandook_config
 
   cd $BLK_DEV_DIR
-  SANDOOK_CONFIG="$blk_dev_sandook_config" sudo -E stdbuf -oL -eL nohup $BLK_DEV $blk_dev_caladan_config $AFFINITY_LIST > $blk_dev_log 2>&1 &
+  _sandook_run_bg_to_log "$blk_dev_log" SANDOOK_CONFIG="$blk_dev_sandook_config" -- sudo -E stdbuf -oL -eL nohup "$BLK_DEV" "$blk_dev_caladan_config" "$AFFINITY_LIST"
   sleep 5
   reset
 }

@@ -15,3 +15,8 @@ Testing/**
 .vscode
 .last_install_deps
 **/*.DS_Store
+**/__pycache__
+**/*.pyc
+
+nsdi-26-ae/experiments/output
+nsdi-26-ae/experiments/.sandook-nsdi-26-ae
