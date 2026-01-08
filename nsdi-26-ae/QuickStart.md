@@ -3,6 +3,7 @@
 ## Note
 For the following examples, we will use two servers from the testbed.
 We assume that you have built Sandook on both of them.
+Instructions for building can be found in the [README](../README.md).
 
 - Host-1 (`zg04.pdos.csail.mit.edu`) will run the controller and a single disk-server.
 - Host-2 (`zg03.pdos.csail.mit.edu`) will run the client block device agent and create a file system to access remote storage.

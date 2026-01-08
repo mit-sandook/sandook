@@ -49,9 +49,9 @@ function run_exp() {
                         --user ${USER} \
                         --ssh-key-path ${SSH_KEY_PATH} \
                         --branch main \
-                        --pull \
                         --get-controller-traces \
-                        --output-dir ${output_dir}
+                        --output-dir ${output_dir} \
+                        --no-build
 
   popd 
 }
