@@ -27,7 +27,7 @@ static_assert(kNameStrLen == kSPDKDeviceSerialNumberLen,
 constexpr static auto kNumMaxServers = 20;
 constexpr static auto kNumMaxVolumes = 16;
 
-constexpr static auto kNumReplicas = 3;
+constexpr static auto kNumReplicas = 2;
 constexpr static size_t kAllocationBatch = 2048;
 static_assert(kAllocationBatch >= kNumReplicas,
               "Allocation batch size must be at least equal to num replicas");
@@ -65,7 +65,7 @@ constexpr auto kControlPlaneUpdateIntervalUs = kDiskServerStatsUpdateIntervalUs;
 /* Interval to pull server stats from controller (in virtual disk). */
 constexpr auto kServerStatsPullIntervalUs = kControlPlaneUpdateIntervalUs;
 /* Interval to wait before switching server modes. */
-constexpr auto kModeSwitchIntervalUs = 1000 * kOneMilliSecond;
+constexpr auto kModeSwitchIntervalUs = 500 * kOneMilliSecond;
 /* Interval to allow potential mixing of requests in the disk server after a
  * mode switch has occured. This prevents very aggressive rejections when the
  * client has a (slightly) stale view of the disk server's mode.

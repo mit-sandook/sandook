@@ -21,12 +21,13 @@ def setup_experiment(
     clean: bool,
     no_build: bool,
     pull: bool,
+    is_client: bool,
 ):
     clean_stale_traces(hostname)
     setup_parent_dir_(hostname)
     setup_output_dir_(hostname)
     setup_local_output_dir_(local_output_dir)
-    setup_repository_(hostname, user, branch, clean, no_build, pull)
+    setup_repository_(hostname, user, branch, clean, no_build, pull, is_client)
     teardown_experiment(hostname)
     stop_iokerneld(hostname)
     setup_machine_(hostname, net_iface)
@@ -290,11 +291,12 @@ def install_repo_(hostname: str):
     logger.debug(f"Install repository successful: {hostname}")
 
 
-def build_repo_(hostname: str, user: str):
-    cargo = get_cargo_path(user)
-    build_repo__(hostname, no_LTO=True)
-    build_virtual_disk_rust_bindings_(hostname, cargo)
-    build_loadgen_(hostname, cargo)
+def build_repo_(hostname: str, user: str, is_client: bool):
+    if is_client:
+        cargo = get_cargo_path(user)
+        build_repo__(hostname, no_LTO=True)
+        build_virtual_disk_rust_bindings_(hostname, cargo)
+        build_loadgen_(hostname, cargo)
     build_repo__(hostname, no_LTO=False)
 
 
@@ -340,7 +342,7 @@ def add_github_to_known_hosts_(hostname: str):
 
 
 def setup_repository_(
-    hostname: str, user: str, branch: str, clean: bool, no_build: bool, pull: bool
+    hostname: str, user: str, branch: str, clean: bool, no_build: bool, pull: bool, is_client: bool
 ):
     if clean:
         clean_repo_(hostname)
@@ -350,7 +352,7 @@ def setup_repository_(
     if pull or not repo_branch_matches_(hostname, branch):
         pull_repo_(hostname, branch)
     if clean or not no_build or pull:
-        build_repo_(hostname, user)
+        build_repo_(hostname, user, is_client)
     logger.debug(f"Setup repository successful: {hostname}")
 
 

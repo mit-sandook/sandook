@@ -20,10 +20,61 @@ then
 fi
 
 BLOCK_SIZE_BYTES=4096
-SET_RATES=(0 250 500 750 1000)
-MPPS_LIST=(1.1 1.0 0.04 0.03 0.6)
+DEFAULT_SET_RATES=(0 300 500 700 1000)
+DEFAULT_MPPS_LIST=(1.1 1.0 0.3 0.3 0.5)
+
+# Optional per-SSD profiling rates. If present, overrides defaults for that SSD.
+# Expected file location (per-serial):
+#   ${ROOT_DIR}/data/profile_rates/<serial>.csv
+# Format:
+#   set_rate,mpps
+#   0,1.1
+#   300,1.0
+#   ...
+PROFILE_RATES_DIR=${ROOT_DIR}/data/profile_rates
+
+function reset_profile_rates_to_defaults {
+  SET_RATES=("${DEFAULT_SET_RATES[@]}")
+  MPPS_LIST=("${DEFAULT_MPPS_LIST[@]}")
+}
+
+function load_profile_rates_for_serial {
+  serial="$1"
+
+  reset_profile_rates_to_defaults
+
+  csv_path="${PROFILE_RATES_DIR}/${serial}.csv"
+  if [ ! -f "${csv_path}" ]; then
+    echo "No per-serial profile rates CSV for ${serial} (${csv_path}); using defaults"
+    return 0
+  fi
+
+  # Parse CSV into SET_RATES/MPPS_LIST (skip header). Ignore blank/malformed lines.
+  parsed_lines=()
+  while IFS= read -r line; do
+    parsed_lines+=("${line}")
+  done < <(awk -F',' 'NR>1 && $1 ~ /^[0-9]+$/ && $2 != "" { gsub(/\r/, "", $0); print $1 "," $2 }' "${csv_path}")
+
+  if [ "${#parsed_lines[@]}" -eq 0 ]; then
+    echo "Per-serial profile rates CSV exists but is empty/invalid (${csv_path}); using defaults"
+    return 0
+  fi
+
+  SET_RATES=()
+  MPPS_LIST=()
+  for entry in "${parsed_lines[@]}"; do
+    sr="${entry%%,*}"
+    mpps="${entry#*,}"
+    SET_RATES+=("${sr}")
+    MPPS_LIST+=("${mpps}")
+  done
+
+  echo "Loaded $((${#SET_RATES[@]})) profile rates for ${serial} from ${csv_path}"
+}
+
+reset_profile_rates_to_defaults
 SAMPLES=30
-RUNTIME=3000
+RUNTIME=1000
 FAKE_ADDR="192.168.127.9:5050"
 
 IF_NAME=$1
@@ -136,6 +187,8 @@ do
   DISK_SERIAL_NUM=${DISK_SERIAL_NUMS[$i]}
 
   update_configs $DISK_PCI_ADDR
+
+  load_profile_rates_for_serial "${DISK_SERIAL_NUM}"
 
   for j in "${!SET_RATES[@]}";
   do

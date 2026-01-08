@@ -1,0 +1,26 @@
+diff --git a/bindings/rust/Cargo.toml b/bindings/rust/Cargo.toml
+--- a/bindings/rust/Cargo.toml
++++ b/bindings/rust/Cargo.toml
+@@ -9,7 +9,7 @@
+ byteorder = "1.2.1"
+ 
+ [build-dependencies]
+-bindgen = "0.64"
++bindgen = "0.69"
+ build-deps = "0.1.3"
+ proc-macro2 = "1.0.66"
+ 
+diff --git a/bindings/rust/build.rs b/bindings/rust/build.rs
+--- a/bindings/rust/build.rs
++++ b/bindings/rust/build.rs
+@@ -62,7 +62,9 @@
+     // to bindgen, and lets you build up options for
+     // the resulting bindings.
+     let bindings = bindgen::Builder::default()
+-        .clang_arg("-I../../inc/")
++        // Define __BINDGEN__ so that DECLARE_PERTHREAD expands to simple extern
++        // declarations that bindgen can parse (see inc/base/thread.h)
++        .clang_args(&["-D__BINDGEN__", "-I../../inc/"])
+         // The input header we would like to generate
+         // bindings for.
+         .header("shenango.h")

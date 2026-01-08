@@ -32,11 +32,11 @@ def get_metric(filename):
 
 def get_max_latency_iops(access_pattern):
     max_latency = SATURATION_LATENCY_US
-    if access_pattern == "250w":
+    if access_pattern == "300w":
         max_iops = 1600000
     elif access_pattern == "500w":
         max_iops = 800000
-    elif access_pattern == "750w":
+    elif access_pattern == "700w":
         max_iops = 700000
     elif access_pattern == "1000w":
         max_iops = 1000000
@@ -80,7 +80,8 @@ def plot_model(path):
 
     # Load data
     df = pd.read_csv(path)
-    col = get_metric(path)
+    # Model files have 2 columns: Load,<metric>. Use whatever metric was generated.
+    col = df.columns[1]
 
     # Workload config
     disk_serial_num, access_pattern = get_workload_config(path)
@@ -275,7 +276,7 @@ def plot_all_models_(access_pattern, paths):
     for path in paths:
         # Load data
         df = pd.read_csv(path)
-        col = get_metric(path)
+        col = df.columns[1]
 
         # Workload config
         disk_serial_num, access_pattern = get_workload_config(path)
@@ -340,7 +341,7 @@ def compute_total_load_(access_pattern, paths):
     for path in paths:
         # Load data
         df = pd.read_csv(path)
-        col = get_metric(path)
+        col = df.columns[1]
 
         device_serial_num = get_label_(path)
 

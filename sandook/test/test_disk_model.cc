@@ -69,7 +69,7 @@ INSTANTIATE_TEST_SUITE_P(
                            sandook::ServerMode::kRead, 0.0, 311},
         /* Pure read. Saturation. */
         DiskModelTestParam{2000000, sandook::OpType::kRead,
-                           sandook::ServerMode::kRead, 0.0, 10000},
+                           sandook::ServerMode::kRead, 0.0, 1050},
         /* Pure write. Extrapolate. */
         DiskModelTestParam{420000, sandook::OpType::kWrite,
                            sandook::ServerMode::kWrite, 1.0, 687},

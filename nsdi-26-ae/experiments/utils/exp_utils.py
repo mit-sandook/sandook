@@ -241,6 +241,7 @@ class Experiment:
     def setup_experiment(self):
         threads = []
         for hostname, net_iface in zip(self.config.hostnames, self.config.net_ifaces):
+            is_client = hostname in self.config.client_hostnames
             t = Thread(
                 target=setup_experiment,
                 args=(
@@ -252,6 +253,7 @@ class Experiment:
                     self.config.clean,
                     self.config.no_build,
                     self.config.pull,
+                    is_client,
                 ),
             )
             threads.append(t)
