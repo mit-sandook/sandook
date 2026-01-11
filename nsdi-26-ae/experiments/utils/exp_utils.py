@@ -242,6 +242,10 @@ class Experiment:
         threads = []
         for hostname, net_iface in zip(self.config.hostnames, self.config.net_ifaces):
             is_client = hostname in self.config.client_hostnames
+            is_disk_server = hostname in self.config.disk_servers
+            disk_pcis = []
+            if is_disk_server:
+                disk_pcis = [cfg["disk_pci"] for cfg in self.config.disk_servers[hostname]]
             t = Thread(
                 target=setup_experiment,
                 args=(
@@ -254,6 +258,8 @@ class Experiment:
                     self.config.no_build,
                     self.config.pull,
                     is_client,
+                    is_disk_server,
+                    disk_pcis,
                 ),
             )
             threads.append(t)

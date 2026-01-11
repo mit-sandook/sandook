@@ -9,7 +9,7 @@ USAGE="Usage: ./plot.sh <output_dir>"
 SCRIPT_DIR=$(dirname $(readlink -f $0))
 ROOT_DIR=${SCRIPT_DIR}/../
 
-CONFIGS=("read_heavy")
+CONFIGS=("100w" "300w" "500w")
 
 PY_VENV=".sandook-nsdi-26-ae"
 
@@ -27,13 +27,13 @@ function plot() {
   baseline_path=${output_dir}/${config_name}_static_rt/loadgen_buckets/loadgen_merged.csv
   if [ ! -f ${baseline_path} ]; then
     echo "Error: Baseline file not found: ${baseline_path}"
-    exit 1
+    return 1
   fi
 
   sandook_path=${output_dir}/${config_name}_sandook/loadgen_buckets/loadgen_merged.csv
   if [ ! -f ${sandook_path} ]; then
     echo "Error: Sandook file not found: ${sandook_path}"
-    exit 1
+    return 1
   fi
 
   # Output file
@@ -43,7 +43,6 @@ function plot() {
   python plot.py --baseline-traces ${baseline_path} \
                  --sandook-traces ${sandook_path} \
                  --output-filename ${output_filename} \
-                 --latency-quantile 0.90 \
                  --show-legend 1
 }
 
@@ -55,5 +54,5 @@ fi
 output_dir=$1
 for config in "${CONFIGS[@]}"
 do
-  plot $output_dir $config
+  plot $output_dir $config || true
 done

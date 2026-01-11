@@ -65,7 +65,7 @@ constexpr auto kControlPlaneUpdateIntervalUs = kDiskServerStatsUpdateIntervalUs;
 /* Interval to pull server stats from controller (in virtual disk). */
 constexpr auto kServerStatsPullIntervalUs = kControlPlaneUpdateIntervalUs;
 /* Interval to wait before switching server modes. */
-constexpr auto kModeSwitchIntervalUs = 500 * kOneMilliSecond;
+constexpr auto kModeSwitchIntervalUs = 300 * kOneMilliSecond;
 /* Interval to allow potential mixing of requests in the disk server after a
  * mode switch has occured. This prevents very aggressive rejections when the
  * client has a (slightly) stale view of the disk server's mode.

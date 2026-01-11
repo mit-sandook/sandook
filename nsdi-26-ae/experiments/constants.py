@@ -37,6 +37,8 @@ SANDOOK_BUILD_SCRIPT = str(Path(SANDOOK_SCRIPTS_DIR) / "build.sh")
 SANDOOK_RUN_SCRIPT = str(Path(SANDOOK_SCRIPTS_DIR) / "run.sh")
 SANDOOK_SETUP_SCRIPT = str(Path(SANDOOK_SCRIPTS_DIR) / "setup.sh")
 SANDOOK_FORMAT_DISK_SCRIPT = str(Path(SANDOOK_SCRIPTS_DIR) / "format_disk.sh")
+SANDOOK_RESET_SCRIPT = str(Path(SANDOOK_SCRIPTS_DIR) / "reset.sh")
+SANDOOK_TRIM_NVME_SCRIPT = str(Path(SANDOOK_SCRIPTS_DIR) / "trim_nvme.sh")
 
 # Sandook block device
 SANDOOK_MOUNT_POINT = "/mnt/sandook"

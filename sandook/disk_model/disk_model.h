@@ -23,17 +23,23 @@
 
 constexpr auto kReadOnlyModelSuffix = "_100r.model";
 constexpr auto kWriteOnlyModelSuffix = "_1000w.model";
-// Mixed-read/write models are bucketed by write ratio. We currently expect
-// 30%/50%/70% write mix profiles.
+
+// Mixed read/write model file suffixes.
+// We support a growing set of mix profiles. Not all SSDs will have all of them;
+// we load whatever exists for the disk and then pick conservatively by rounding
+// the observed write-ratio *up* to the next available bucket.
 //
-// Backward compatibility:
-// - If a 300w model isn't present, we fall back to 250w
-// - If a 700w model isn't present, we fall back to 750w
+// Expected naming: "_<pct>w.model" where pct is an integer percent of writes,
+// e.g. 100w, 200w, 300w, 400w, 500w, 600w, 700w, 750w.
+constexpr auto kMixModelSuffix_10 = "_100w.model";
+constexpr auto kMixModelSuffix_20 = "_200w.model";
+constexpr auto kMixModelSuffix_25 = "_250w.model";  // legacy
 constexpr auto kMixModelSuffix_30 = "_300w.model";
+constexpr auto kMixModelSuffix_40 = "_400w.model";
 constexpr auto kMixModelSuffix_50 = "_500w.model";
+constexpr auto kMixModelSuffix_60 = "_600w.model";
 constexpr auto kMixModelSuffix_70 = "_700w.model";
-constexpr auto kMixModelSuffixFallback_25 = "_250w.model";
-constexpr auto kMixModelSuffixFallback_75 = "_750w.model";
+constexpr auto kMixModelSuffix_75 = "_750w.model";  // legacy
 
 constexpr auto kPeakLoadDampeningFactor = 0.95;
 // NOTE: Historically, the model "blew up" latency when queried above the last
@@ -44,14 +50,6 @@ constexpr auto kSaturationLatencyUs = 1000;
 // Slightly penalize saturation to discourage operating right at the knee.
 constexpr auto kSaturationLatencyPenaltyUs =
     static_cast<uint64_t>(kSaturationLatencyUs * 1.05);
-
-// Write-ratio bucket boundaries are midpoints between the modeled mixes:
-// 30% / 50% / 70% writes.
-// - < 40% writes  -> use 30% model
-// - < 60% writes  -> use 50% model
-// - >= 60% writes -> use 70% model
-constexpr auto kPercentWrites_40 = 0.40;
-constexpr auto kPercentWrites_60 = 0.60;
 
 namespace sandook {
 
@@ -74,8 +72,9 @@ class DiskModel {
   [[nodiscard]] uint64_t GetLatency(uint64_t cur_load, OpType op,
                                     ServerMode mode, double write_ratio) const {
 
-    return GetLatency(cur_load, &load_mix_30_, &latency_mix_30_);
-#if 0
+    // return GetLatency(cur_load, &load_mix_30_, &latency_mix_30_);
+    // return GetLatency(cur_load, &load_mix_70_, &latency_mix_70_);
+
     /* Read-only. */
     if (op == OpType::kRead && mode == ServerMode::kRead) {
       return GetLatency(cur_load, &load_read_, &latency_read_);
@@ -87,20 +86,14 @@ class DiskModel {
     }
 
     /* Read-write mixed.
-     * Using a little lower margins to err more on the side of higher writes.
+     * Select the closest available write-mix model by rounding write_ratio up.
      */
-    if (write_ratio < kPercentWrites_40) {
-      return GetLatency(cur_load, &load_mix_30_, &latency_mix_30_);
-    }
-    if (write_ratio < kPercentWrites_60) {
-      return GetLatency(cur_load, &load_mix_50_, &latency_mix_50_);
-    }
-    return GetLatency(cur_load, &load_mix_70_, &latency_mix_70_);
-#endif
+    const auto &mix = SelectMixModel(write_ratio);
+    return GetLatency(cur_load, &mix.load, &mix.latency);
   }
 
   [[nodiscard]] uint64_t GetPeakIOPS(
-      ServerMode mode, double write_ratio = kPercentWrites_40) const {
+      ServerMode mode, double write_ratio = 0.0) const {
     switch (mode) {
       case ServerMode::kRead:
         return GetPeakIOPS(&load_read_, &latency_read_);
@@ -109,13 +102,8 @@ class DiskModel {
         return GetPeakIOPS(&load_write_, &latency_write_);
 
       case ServerMode::kMix: {
-        if (write_ratio < kPercentWrites_40) {
-          return GetPeakIOPS(&load_mix_30_, &latency_mix_30_);
-        }
-        if (write_ratio < kPercentWrites_60) {
-          return GetPeakIOPS(&load_mix_50_, &latency_mix_50_);
-        }
-        return GetPeakIOPS(&load_mix_70_, &latency_mix_70_);
+        const auto &mix = SelectMixModel(write_ratio);
+        return GetPeakIOPS(&mix.load, &mix.latency);
       }
 
       default:
@@ -126,20 +114,42 @@ class DiskModel {
   }
 
  private:
+  struct MixModel {
+    double write_ratio_bucket;
+    LoadValues load;
+    LatencyValues latency;
+  };
+
   LoadValues load_read_;
   LatencyValues latency_read_;
 
   LoadValues load_write_;
   LatencyValues latency_write_;
 
-  LoadValues load_mix_30_;
-  LatencyValues latency_mix_30_;
+  std::vector<MixModel> mix_models_;
 
-  LoadValues load_mix_50_;
-  LatencyValues latency_mix_50_;
+  [[nodiscard]] const MixModel &SelectMixModel(double write_ratio) const {
+    if (mix_models_.empty()) {
+      throw std::runtime_error("No mixed R/W models loaded");
+    }
 
-  LoadValues load_mix_70_;
-  LatencyValues latency_mix_70_;
+    // Clamp to sane range.
+    if (write_ratio < 0.0) {
+      write_ratio = 0.0;
+    }
+    if (write_ratio > 1.0) {
+      write_ratio = 1.0;
+    }
+
+    // Conservative selection: round up to the next available bucket.
+    for (const auto &m : mix_models_) {
+      if (write_ratio <= m.write_ratio_bucket) {
+        return m;
+      }
+    }
+    // If higher than all buckets, use the highest available bucket.
+    return mix_models_.back();
+  }
 
   Status<void> LoadModels(const std::string &name) {
     LoadLatency model;
@@ -166,53 +176,39 @@ class DiskModel {
     load_write_ = std::move(std::get<0>(model));
     latency_write_ = std::move(std::get<1>(model));
 
-    auto load_model_with_fallback = [&](const std::string &primary_suffix,
-                                        const std::string &fallback_suffix)
-        -> Status<LoadLatency> {
-      auto primary = std::filesystem::path(Config::kSSDModelsDirPath /
-                                          (name + primary_suffix));
-      try {
-        return LoadModel(primary);
-      } catch (...) {
-        // Fall back for older datasets (e.g., 250w/750w).
-        auto fallback = std::filesystem::path(Config::kSSDModelsDirPath /
-                                             (name + fallback_suffix));
-        try {
-          return LoadModel(fallback);
-        } catch (...) {
-          return MakeError(EINVAL);
-        }
-      }
+    /* Load mixed models (best-effort). */
+    mix_models_.clear();
+    struct MixCandidate {
+      double bucket;
+      const char *suffix;
+    };
+    // Keep in ascending bucket order.
+    constexpr MixCandidate kMixCandidates[] = {
+        {0.10, kMixModelSuffix_10}, {0.20, kMixModelSuffix_20},
+        {0.25, kMixModelSuffix_25}, {0.30, kMixModelSuffix_30},
+        {0.40, kMixModelSuffix_40}, {0.50, kMixModelSuffix_50},
+        {0.60, kMixModelSuffix_60}, {0.70, kMixModelSuffix_70},
+        {0.75, kMixModelSuffix_75},
     };
 
-    /* Load 30% writes mixed model. */
-    auto model_ret =
-        load_model_with_fallback(kMixModelSuffix_30, kMixModelSuffixFallback_25);
-    if (!model_ret) {
-      return MakeError(model_ret);
+    for (const auto &c : kMixCandidates) {
+      const auto fname = name + std::string(c.suffix);
+      const auto fpath = std::filesystem::path(Config::kSSDModelsDirPath / fname);
+      try {
+        model = LoadModel(fpath);
+      } catch (...) {
+        continue;
+      }
+      mix_models_.push_back(MixModel{
+          .write_ratio_bucket = c.bucket,
+          .load = std::move(std::get<0>(model)),
+          .latency = std::move(std::get<1>(model)),
+      });
     }
-    load_mix_30_ = std::move(std::get<0>(*model_ret));
-    latency_mix_30_ = std::move(std::get<1>(*model_ret));
 
-    /* Load 50% writes mixed model. */
-    try {
-      fname = name + kMixModelSuffix_50;
-      fpath = std::filesystem::path(Config::kSSDModelsDirPath / fname);
-      model = LoadModel(fpath);
-    } catch (...) {
+    if (mix_models_.empty()) {
       return MakeError(EINVAL);
     }
-    load_mix_50_ = std::move(std::get<0>(model));
-    latency_mix_50_ = std::move(std::get<1>(model));
-
-    /* Load 70% writes mixed model. */
-    model_ret =
-        load_model_with_fallback(kMixModelSuffix_70, kMixModelSuffixFallback_75);
-    if (!model_ret) {
-      return MakeError(model_ret);
-    }
-    load_mix_70_ = std::move(std::get<0>(*model_ret));
-    latency_mix_70_ = std::move(std::get<1>(*model_ret));
 
     return {};
   }

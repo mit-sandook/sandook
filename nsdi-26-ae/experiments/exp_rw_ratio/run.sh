@@ -6,8 +6,11 @@ SCRIPT_DIR=$(dirname $(readlink -f $0))
 ROOT_DIR=${SCRIPT_DIR}/../
 
 # Configurations to run
-# CONFIGS=("read_heavy_sandook")
-CONFIGS=("read_heavy_sandook" "read_heavy_static_rt")
+CONFIGS=(
+  "100w_sandook" "100w_static_rt"
+  "300w_sandook" "300w_static_rt"
+  "500w_sandook" "500w_static_rt"
+)
 
 # Python virtual environment
 PY_VENV=".sandook-nsdi-26-ae"

@@ -22,6 +22,8 @@ def setup_experiment(
     no_build: bool,
     pull: bool,
     is_client: bool,
+    is_disk_server: bool,
+    disk_pcis: list[str],
 ):
     clean_stale_traces(hostname)
     setup_parent_dir_(hostname)
@@ -30,6 +32,8 @@ def setup_experiment(
     setup_repository_(hostname, user, branch, clean, no_build, pull, is_client)
     teardown_experiment(hostname)
     stop_iokerneld(hostname)
+    if is_disk_server:
+        trim_disks_(hostname, disk_pcis)
     setup_machine_(hostname, net_iface)
     disable_dvfs(hostname)
 
@@ -86,6 +90,29 @@ def disable_dvfs(hostname: str):
         logger.error(stderr)
         raise Exception("Cannot disable DVFS")
     logger.debug(f"Disabled DVFS on: {hostname}")
+
+
+def trim_disks_(hostname: str, disk_pcis: list[str], block_size_bytes: int = 4096):
+    """
+    Reset SPDK (unbind NVMe) + format + discard the configured NVMe namespaces
+    for a disk server.
+    """
+    if not disk_pcis:
+        logger.debug(f"No disk_pcis provided for trim on: {hostname}")
+        return
+
+    # Delegate to the repo script (mirrors the profile_disk.sh behavior).
+    pci_args = " ".join(disk_pcis)
+    cmd = [
+        ct.XTERM,
+        f"cd {ct.CODE_DIR};",
+        f"sudo bash ./{ct.SANDOOK_TRIM_NVME_SCRIPT} {block_size_bytes} {pci_args};",
+    ]
+    success, stdout, stderr = run_cmd_remote_with_output(hostname, cmd)
+    if not success:
+        logger.error(stdout)
+        logger.error(stderr)
+        raise Exception(f"Cannot trim NVMe disks on: {hostname}")
 
 
 def setup_machine_(hostname: str, net_iface: str):

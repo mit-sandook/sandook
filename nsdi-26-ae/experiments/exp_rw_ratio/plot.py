@@ -227,7 +227,7 @@ def plot(baseline, sandook, output_filename, optimal_mops, show_legend, quantile
         ax.set_xlim(0, max_x * 1.05)
     ax.grid()
     ax.set_xlabel("Load (million RPS)")
-    ylabel_tag = f"{int(quantile*100)}%"
+    ylabel_tag = f"P{int(quantile*100)}"
     ax.set_ylabel(f"{ylabel_tag} Latency (ms)")
     if show_legend:
         ax.legend()
