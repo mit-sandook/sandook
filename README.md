@@ -10,6 +10,27 @@ Gohar Irfan Chaudhry, Ankit Bhardwaj, Zhenyuan Ruan, Adam Belay
 ## Artifact Evaluation Guide (NSDI - Fall 2026)
 This document (and the references within) are to guide the artifact evaluation process.
 
+### Accessing Evaluation Testbed
+> [!NOTE]
+> In order to make it easier to access the hardware/software environment for evaluating the artifact, we will provide access to our own server testbed. We kindly request the authors to email us at girfan@mit.edu and ankit@cs.tufts.edu when ready to evaluate the artifact and we will promptly provide credentials and login instructions to our servers.
+
+### Quick Start
+> [!NOTE]
+> Information can be found in [QuickStart](nsdi-26-ae/QuickStart.md).
+
+### Claims Evaluated
+
+1. **Main Result (Figure 4)**: Sandook achieves significant I/O throughput improvement over existing systems that tackle only a single source of SSD performance variability, while maintaining sub-millisecond tail latency. This experiment compares Sandook against:
+   - Static routing (FDS-style)
+   - Read/write isolation (Rails-style)
+
+2. **Different Read/Write Ratios (Figure 6)**: Demonstrates how Sandook is able to improve IOPS and maintain low latency under different ratios of reads/writes in the storage cluster. This experiment compares Sandook against:
+   - Static routing (FDS-style)
+
+### Reproducing Experiment Results
+> [!NOTE]
+> Information can be found in [Experiments](nsdi-26-ae/Experiments.md).
+
 ## Overview
 
 Sandook is a distributed storage system that aggregates multiple NVMe SSDs into a unified, high-performance block device. It features dynamic read/write workload isolation, SSD performance model-driven scheduling, and exposes storage via a standard Linux block device interface.
@@ -138,27 +159,3 @@ Configuration files (`.config`) specify:
 - Scheduler type (control-plane and data-plane)
 - Virtual disk type (local/remote)
 - Disk server backend (POSIX/Memory/SPDK)
-
-## Artifact Evaluation
-
-### Accessing Evaluation Testbed
-> [!NOTE]
-> In order to make it easier to access the hardware/software environment for evaluating the artifact, we will provide access to our own server testbed. We kindly request the authors to email us at girfan@mit.edu and ankit@cs.tufts.edu when ready to evaluate the artifact and we will promptly provide credentials and login instructions to our servers.
-
-### Quick Start
-> [!NOTE]
-> Information can be found in [QuickStart](nsdi-26-ae/QuickStart.md).
-
-### Claims Evaluated
-
-1. **Main Result (Figure 4)**: Sandook achieves significant I/O throughput improvement over existing systems that tackle only a single source of SSD performance variability, while maintaining sub-millisecond tail latency. This experiment compares Sandook against:
-   - Static striping (FDS-style)
-   - Congestion control alone (Gimbal-style)
-   - Read/write isolation alone (Rails-style)
-   - Weighted routing alone (ReFlex-style)
-
-2. **Impact of Replication (Figure 8)**: Demonstrates how Sandook's log-structured writes with replication enable flexible I/O steering. This experiment shows the performance trade-offs of replication factor on read/write throughput and tail latency.
-
-### Reproducing Experiment Results
-> [!NOTE]
-> Information can be found in [Experiments](nsdi-26-ae/Experiments.md).
