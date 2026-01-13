@@ -12,7 +12,7 @@ This document (and the references within) are to guide the artifact evaluation p
 
 ### Accessing Evaluation Testbed
 > [!NOTE]
-> In order to make it easier to access the hardware/software environment for evaluating the artifact, we will provide access to our own server testbed. We kindly request the authors to email us at girfan@mit.edu and ankit@cs.tufts.edu when ready to evaluate the artifact and we will promptly provide credentials and login instructions to our servers.
+> In order to make it easier to access the hardware/software environment for evaluating the artifact, we will provide access to our own server testbed. We kindly request the authors to email us at girfan@mit.edu and ankit@cs.tufts.edu when ready to evaluate the artifact and we will promptly provide credentials and login instructions to our servers. We would appreciate if you kindly share your SSH public key with us so we can grant access.
 
 ### Quick Start
 > [!NOTE]
