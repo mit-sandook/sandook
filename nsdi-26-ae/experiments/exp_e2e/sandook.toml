@@ -79,10 +79,10 @@ ip = "192.168.127.27"
 ip = "192.168.127.14"
 cores = "16"
 app = "loadgen"
-args = "--threads 16 --samples 10 --mpps 1.35 --intersample_sleep 2 --runtime 3000 --rampup 5 -d constant --sandook_set_rate 100 --sandook_nsectors 4194304 --output file --leader-ip=192.168.127.11"
+args = "--threads 16 --samples 15 --mpps 1.53 --intersample_sleep 2 --runtime 3000 --rampup 5 -d constant --sandook_set_rate 100 --sandook_nsectors 4194304 --output file --leader-ip=192.168.127.11"
 
 [machines.client2.client2]
 ip = "192.168.127.11"
 cores = "16"
 app = "loadgen"
-args = "--threads 16 --samples 10 --mpps 1.35 --intersample_sleep 2 --runtime 3000 --rampup 5 -d constant --sandook_set_rate 100 --sandook_nsectors 4194304 --output file --barrier-peers 2 --leader"
+args = "--threads 16 --samples 15 --mpps 1.53 --intersample_sleep 2 --runtime 3000 --rampup 5 -d constant --sandook_set_rate 100 --sandook_nsectors 4194304 --output file --barrier-peers 2 --leader"

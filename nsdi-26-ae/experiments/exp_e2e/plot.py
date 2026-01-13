@@ -17,32 +17,27 @@ plt.rcParams.update({
 # Output directory
 OUTPUTS_DIR = "."
 
-# Quantile of latency to plot
-QUANTILE = 0.90
+def get_latency_col(quantile: float) -> str:
+    if quantile == 0.9:
+        return kP90
+    if quantile == 0.99:
+        return kP99
+    if quantile == 0.5:
+        return kP50
+    raise Exception(f"Unexpected quantile: {quantile}")
 
 # Maximum latency to plot (ms)
 MAX_LATENCY_MS = 1000
 # Latency limit to plot (ms)
 LATENCY_LIMIT_MS = 1.0
 # Load limit to plot (MOPS)
-LOAD_LIMIT_MOPS = 2.8 * 1e6
+LOAD_LIMIT_MOPS = None
 
 
 kActual = "Actual"
 kP50 = "Median"
 kP90 = "90th"
 kP99 = "99th"
-
-
-LATENCY_COL = None
-if QUANTILE == 0.9:
-    LATENCY_COL = kP90
-elif QUANTILE == 0.99:
-    LATENCY_COL = kP99
-elif QUANTILE == 0.5:
-    LATENCY_COL = kP50
-else:
-    raise Exception("Unexpected quantile")
 
 
 def get_args():
@@ -84,10 +79,7 @@ def format_filename(s):
 
 
 def get_df(filename):
-    df = pd.read_csv(filename, skipinitialspace=True)
-    # Drop rows after latency limit.
-    df = df[df[LATENCY_COL] < (LATENCY_LIMIT_MS * 1e3)]
-    return df
+    return pd.read_csv(filename, skipinitialspace=True)
 
 
 def get_dfs(filenames):
@@ -102,8 +94,10 @@ def drop_rows_after_saturation(df):
     This is essentially dropping all rows after the point where we see a fall
     in the offered load (throughput) to the server (indicating saturation).
     """
-    df['Diff'] = df['Actual'] - df['Actual'].shift(1)
-    df.replace({'Diff': (np.nan, 0)}, inplace=True)
+    # Avoid pandas SettingWithCopyWarning: operate on an owned copy and use .loc.
+    df = df.copy()
+    df.loc[:, 'Diff'] = df['Actual'] - df['Actual'].shift(1)
+    df.loc[:, 'Diff'] = df['Diff'].fillna(0)
     try:
         ix = df[df['Diff'] < 0].iloc[0].name
         ix = int(ix)
@@ -126,24 +120,24 @@ def get_load_lat_values(df, col):
         y = y._append(pd.Series(MAX_LATENCY_MS))
     return [x, y]
 
-def get_best_iops_under_latency_ms(df, latency_ms):
+def get_best_iops_under_latency_ms(df, latency_ms, latency_col):
     """
     Return the maximum throughput (IOPS/RPS) achievable while staying under the
-    given latency bound for the configured QUANTILE (LATENCY_COL).
+    given latency bound for the specified quantile column.
     """
     df = drop_rows_after_saturation(df)
     if len(df) == 0:
         return 0.0
-    df = df[df[LATENCY_COL] < (latency_ms * 1e3)]
+    df = df[df[latency_col] < (latency_ms * 1e3)]
     if len(df) == 0:
         return 0.0
     return float(df[kActual].max())
 
 
-def plot_iops_bar(baseline_df, rw_df, sandook_df, output_filename):
+def plot_iops_bar(baseline_df, rw_df, sandook_df, output_filename, quantile, latency_col):
     """
     Bar chart: best achievable throughput for each configuration while keeping
-    QUANTILE latency under LATENCY_LIMIT_MS.
+    the given quantile latency under LATENCY_LIMIT_MS.
     """
     configs = [
         ("Static Rt.", baseline_df, "red"),
@@ -152,7 +146,7 @@ def plot_iops_bar(baseline_df, rw_df, sandook_df, output_filename):
     ]
 
     best_iops = [
-        get_best_iops_under_latency_ms(df, LATENCY_LIMIT_MS) for _, df, _ in configs
+        get_best_iops_under_latency_ms(df, LATENCY_LIMIT_MS, latency_col) for _, df, _ in configs
     ]
     labels = [name for name, _, _ in configs]
     colors = [c for _, _, c in configs]
@@ -184,7 +178,8 @@ def plot_iops_bar(baseline_df, rw_df, sandook_df, output_filename):
 
     plt.tight_layout()
 
-    out = f"{output_filename}-iops"
+    ylabel_tag = f"P{int(quantile*100)}"
+    out = f"{output_filename}-{ylabel_tag}-iops"
     pdf_filepath = os.path.join(OUTPUTS_DIR, f"{out}.pdf")
     png_filepath = os.path.join(OUTPUTS_DIR, f"{out}.png")
     for filepath in [pdf_filepath, png_filepath]:
@@ -195,7 +190,7 @@ def plot_iops_bar(baseline_df, rw_df, sandook_df, output_filename):
     plt.close(fig)
 
 
-def plot(baseline, rw, sandook, output_filename):
+def plot(baseline, rw, sandook, output_filename, quantile):
     def x_axis_fmt_(x):
         return x * 1e-6
 
@@ -210,13 +205,14 @@ def plot(baseline, rw, sandook, output_filename):
     ax.set_xlim(0, LOAD_LIMIT_MOPS)
     ax.grid()
     ax.set_xlabel("Load (million RPS)")
-    ylabel_tag = f"{int(QUANTILE*100)}%"
+    ylabel_tag = f"P{int(quantile*100)}"
     ax.set_ylabel(f"{ylabel_tag} Latency (ms)")
     ax.legend(loc="upper left", labelspacing=0.1)
     plt.tight_layout()
 
-    pdf_filepath = os.path.join(OUTPUTS_DIR, f"{output_filename}.pdf")
-    png_filepath = os.path.join(OUTPUTS_DIR, f"{output_filename}.png")
+    out = f"{output_filename}-{ylabel_tag}"
+    pdf_filepath = os.path.join(OUTPUTS_DIR, f"{out}.pdf")
+    png_filepath = os.path.join(OUTPUTS_DIR, f"{out}.png")
     filepaths = [pdf_filepath, png_filepath]
     for filepath in filepaths:
         if os.path.exists(filepath):
@@ -233,11 +229,20 @@ def main():
     df_rw = get_df(args.rw)
     df_sandook = get_df(args.sandook)
 
-    baseline = get_load_lat_values(df_baseline, LATENCY_COL)
-    rw = get_load_lat_values(df_rw, LATENCY_COL)
-    sandook = get_load_lat_values(df_sandook, LATENCY_COL)
-    plot(baseline, rw, sandook, args.output_filename)
-    plot_iops_bar(df_baseline, df_rw, df_sandook, args.output_filename)
+    # Produce both p90 and p99 curves (and corresponding bar charts).
+    for quantile in [0.90, 0.99]:
+        latency_col = get_latency_col(quantile)
+
+        # Drop rows after latency limit for the selected quantile (consistent with old behavior).
+        df_b = df_baseline[df_baseline[latency_col] < (LATENCY_LIMIT_MS * 1e3)]
+        df_r = df_rw[df_rw[latency_col] < (LATENCY_LIMIT_MS * 1e3)]
+        df_s = df_sandook[df_sandook[latency_col] < (LATENCY_LIMIT_MS * 1e3)]
+
+        baseline = get_load_lat_values(df_b, latency_col)
+        rw = get_load_lat_values(df_r, latency_col)
+        sandook = get_load_lat_values(df_s, latency_col)
+        plot(baseline, rw, sandook, args.output_filename, quantile)
+        plot_iops_bar(df_b, df_r, df_s, args.output_filename, quantile, latency_col)
 
 if __name__ == "__main__":
     main()

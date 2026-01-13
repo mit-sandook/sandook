@@ -111,8 +111,10 @@ def drop_rows_after_saturation(df):
     This is essentially dropping all rows after the point where we see a fall
     in the offered load (throughput) to the server (indicating saturation).
     """
-    df['Diff'] = df['Actual'] - df['Actual'].shift(1)
-    df.replace({'Diff': (np.nan, 0)}, inplace=True)
+    # Avoid pandas SettingWithCopyWarning: operate on an owned copy and use .loc.
+    df = df.copy()
+    df.loc[:, 'Diff'] = df['Actual'] - df['Actual'].shift(1)
+    df.loc[:, 'Diff'] = df['Diff'].fillna(0)
     try:
         ix = df[df['Diff'] < 0].iloc[0].name
         ix = int(ix)
