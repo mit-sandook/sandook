@@ -18,7 +18,7 @@ We have provided scripts to run and analyze the results of two key experiments.
 > (the availability of the hardware and the wear-and-tear of the SSDs has changed since the experiments in the paper.)
 > Nevertheless, the key trends should still be reproducible.
 
-## Experiment 1: [End-to-End (E2E)](experiments/exp_e2e)
+## Experiment 1: [End-to-End (E2E)](exp_e2e)
 
 This experiment compares the end-to-end performance of Sandook compared with two baselines, static routing (*Static Rt.*) and read/write segregation (*R/W Seg.*).
 
@@ -40,7 +40,7 @@ cd experiments/exp_e2e
 ./run.sh
 ```
 
-## Experiment 2: [Read-Write Ratios (RW Ratio)](experiments/exp_rw_ratio)
+## Experiment 2: [Read-Write Ratios (RW Ratio)](exp_rw_ratio)
 
 This experiment compares the raw storage performance of Sandook compared with the static routing (*Static Rt.*) baseline on the following read/write ratios:
 - 10% Reads, 90% Writes
