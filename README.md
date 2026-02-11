@@ -144,7 +144,7 @@ The following testbed configuration was used for the experiments in the Sandook 
 - **DRAM**: 64 GB DDR4
 
 ### Software
-- **Operating System**: Ubuntu 23.04 LTS with Linux kernel v6.5
+- **Operating System**: Ubuntu 23.04 with Linux kernel v6.5
 
 ### Minimum Recommendation
 - Minimum 2 machines: one for the client (controller + block device agent) and one or more for disk servers
