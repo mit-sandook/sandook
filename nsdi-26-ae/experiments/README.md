@@ -33,7 +33,7 @@ This experiment compares the end-to-end performance of Sandook compared with two
 To simplify the process of running the experiment with the three configurations (Sandook, Static Routing and Read/Write Segregation) we have packaged everything into a single bash script [run.sh](exp_e2e/run.sh).
 
 This script deploys the most recent code on to all the servers, starts the controller, the disk servers, and the load generating clients.
-Depending on the configuration being evaluated, it uses the relevant `.toml` file to specify the details of the experiment ([sandook.toml](experiments/exp_e2e/sandook.toml), [static_rt.toml](experiments/exp_e2e/static_rt.toml), [rw_seg.toml](experiments/exp_e2e/rw_seg.toml)).
+Depending on the configuration being evaluated, it uses the relevant `.toml` file to specify the details of the experiment ([sandook.toml](exp_e2e/sandook.toml), [static_rt.toml](exp_e2e/static_rt.toml), [rw_seg.toml](exp_e2e/rw_seg.toml)).
 
 ```
 cd experiments/exp_e2e
@@ -59,7 +59,7 @@ This experiment compares the raw storage performance of Sandook compared with th
 To simplify the process of running the experiment with the two configurations (Sandook and Static Routing) we have packaged everything into a single bash script [run.sh](exp_rw_ratio/run.sh).
 
 This script deploys the most recent code on to all the servers, starts the controller, the disk servers, and the load generating clients.
-Depending on the configuration being evaluated, it uses the relevant `.toml` file to specify the details of the experiment (e.g., [100w_sandook.toml](experiments/exp_rw_ratio/100w_sandook.toml), [500w_static_rt.toml](experiments/exp_rw_ratio/500w_static_rt.toml) etc.)
+Depending on the configuration being evaluated, it uses the relevant `.toml` file to specify the details of the experiment (e.g., [100w_sandook.toml](exp_rw_ratio/100w_sandook.toml), [500w_static_rt.toml](exp_rw_ratio/500w_static_rt.toml) etc.)
 
 ```
 cd experiments/exp_rw_ratio
