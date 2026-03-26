@@ -14,8 +14,8 @@ We have provided scripts to run and analyze the results of two key experiments.
 ## Note
 > [!NOTE]
 > The experiment results are very specific to the available SSDs and their wear-and-tear condition.
-> The results in the paper were done on a (partially) different set of SSDs and servers therefore the exact results will not be possible to replicate now.
-> (the availability of the hardware and the wear-and-tear of the SSDs has changed since the experiments in the paper.)
+> The results in the paper were done on a (partially) different set of SSDs and servers therefore the exact results will not be possible to replicate now
+> (the availability of the hardware and the wear-and-tear of the SSDs has changed since the experiments in the paper).
 > Nevertheless, the key trends should still be reproducible.
 
 ## Experiment 1: [End-to-End (E2E)](exp_e2e)
