@@ -157,21 +157,16 @@ Configuration files (`.config`) specify:
 - Controller IP/port
 - Storage server IP/port
 - Scheduler type (control-plane and data-plane)
+- Virtual disk type (local/remote)
+- Disk server backend (POSIX/Memory/SPDK)
 
 ## Citation
 ```
-@inproceedings {316584,
-author = {Gohar Irfan Chaudhry and Ankit Bhardwaj and Zhenyuan (Zain) Ruan and Adam Belay},
-title = {Unleashing The Potential of Datacenter {SSDs} by Taming Performance Variability},
-booktitle = {23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26)},
-year = {2026},
-isbn = {978-1-939133-54-0},
-address = {Renton, WA},
-pages = {2423--2441},
-url = {https://www.usenix.org/conference/nsdi26/presentation/chaudhry},
-publisher = {USENIX Association},
-month = may
+@inproceedings {chaudhry2026sandook,
+   author = {Gohar Irfan Chaudhry and Ankit Bhardwaj and Zhenyuan (Zain) Ruan and Adam Belay},
+   title = {Unleashing The Potential of Datacenter {SSDs} by Taming Performance Variability},
+   booktitle = {23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26)},
+   year = {2026},
 }
 ```
-- Virtual disk type (local/remote)
-- Disk server backend (POSIX/Memory/SPDK)
+
