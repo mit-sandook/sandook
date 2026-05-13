@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Paper
-**Unleashing The Potential of Datacenter SSDs by Taming Performance Variability** *(NSDI '26)*
+[**Unleashing The Potential of Datacenter SSDs by Taming Performance Variability** *(NSDI '26)*](https://www.usenix.org/system/files/nsdi26-chaudhry.pdf)
 
 Gohar Irfan Chaudhry, Ankit Bhardwaj, Zhenyuan Ruan, Adam Belay
 
